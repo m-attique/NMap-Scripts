@@ -1,38 +1,47 @@
 description = [[
-Detects if the target hosts are using RC4 cipher suites, indicating potential vulnerability to the BAR MITZVAH vulnerability.
+Uses ssl-enum-ciphers to detect support for RC4 cipher suites and assess vulnerability to BAR MITZVAH.
 ]]
 
-author = "M-Attique"
+author = "M Attique"
 license = "Same as Nmap--See https://nmap.org/book/man-legal.html"
-categories = {"default", "safe"}
+categories = {"safe", "vuln"}
 
--- Import the tls library
-local tls = require("tls")
+local stdnse = require("stdnse")
+local shortport = require("shortport")
+local sslcert = require("sslcert")
+local nmap = require("nmap")
 
+-- Define port rule to use Nmap provided flags like -p for specifying ports
 portrule = function(host, port)
-  -- Check if the port is open and selected by the user with the -p option
-  return port.state == "open"
+  return nmap.has_port(host, port) and port.state == "open" and port.protocol == "tcp"
 end
 
 action = function(host, port)
-  local status, result = tls.getCipherSuites(host, port)
-  if not status then
-    return "Failed to retrieve SSL cipher suites."
-  end
-
-  local vulnerable = false
-  local rc4_ciphers = {}
-
-  for _, cipher in ipairs(result) do
-    if cipher.name:match("RC4") then
-      vulnerable = true
-      table.insert(rc4_ciphers, cipher.name)
+    -- Run the ssl-enum-ciphers script
+    local status, result = stdnse.run_script("ssl-enum-ciphers", host, port)
+    if not status then
+        return stdnse.format_output(true, "Error running ssl-enum-ciphers on port " .. port.number)
     end
-  end
 
-  if vulnerable then
-    return ("Host is potentially vulnerable to BAR MITZVAH (using RC4 ciphers): \n - %s"):format(table.concat(rc4_ciphers, "\n - "))
-  else
-    return "Host does not appear to be vulnerable to BAR MITZVAH (no RC4 ciphers found)."
-  end
+    local rc4_found = false
+
+    -- Parse the ssl-enum-ciphers output to look for RC4 cipher suites
+    for _, cipher in ipairs(result) do
+        if cipher.output:find("RC4") then
+            rc4_found = true
+            break
+        end
+    end
+
+    -- ANSI color codes
+    local red = "\27[31m"
+    local green = "\27[32m"
+    local reset = "\27[0m"
+
+    -- Prepare the report based on findings
+    if rc4_found then
+        return stdnse.format_output(true, red .. "Vulnerable to BAR MITZVAH (RC4 cipher suites found)." .. reset)
+    else
+        return stdnse.format_output(true, green .. "Not Vulnerable to BAR MITZVAH (No RC4 cipher suites found)." .. reset)
+    end
 end
