@@ -10,8 +10,8 @@ categories = {"default", "safe"}
 local tls = require("tls")
 
 portrule = function(host, port)
-  -- Allows any port specified by -p option; assumes SSL/TLS can run on any port.
-  return nmap.port_number(port) > 0 -- Checks if the port number is valid
+  -- Check if the port is open and selected by the user with the -p option
+  return port.state == "open"
 end
 
 action = function(host, port)
