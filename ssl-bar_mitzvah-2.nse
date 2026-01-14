@@ -22,8 +22,8 @@ weaknesses in the RC4 encryption algorithm, particularly in SSL/TLS protocols.
 -- |   VULNERABLE:
 -- |_    Server supports RC4 ciphers, vulnerable to Bar Mitzvah (CVE-2015-2808)
 
-author = "Your Name"
-license = "Same as Nmap--See https://nmap.org/book/man-legal.html"
+author = "Muhammad Attique"
+license = "Same as Nmap"
 categories = {"default", "safe", "vuln"}
 
 portrule = shortport.ssl
